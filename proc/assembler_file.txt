@@ -1,0 +1,7 @@
+push 3
+push 4
+pop cx
+pop [cx]
+push 10
+dump
+hlt

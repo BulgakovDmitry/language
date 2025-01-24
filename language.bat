@@ -1,0 +1,1 @@
+g++ structLanguage.cpp myLib\myLib.cpp structStack\Stack.cpp proc\proc.cpp proc\procAsm.cpp -Wall -Wextra
