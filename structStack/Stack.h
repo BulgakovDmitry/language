@@ -1,13 +1,14 @@
 #ifndef STACK_H
 #define STACK_H
 
-typedef double StackElem_t;
-typedef double Canary_t;
+#include "../myLib/myLib.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
 
-    #define DEBUG
+typedef double StackElem_t;
+typedef double Canary_t;
+
 
 #define RESET   "\033[0m"
 #define RED     "\033[1;31m"
@@ -18,9 +19,6 @@ typedef double Canary_t;
 #define CEAN    "\033[1;36m"
 #define YELLOW  "\033[1;33m"
 
-#define FREE(ptr_) \
-        do { free(ptr_); ptr_ = NULL; } while (false)
-
 #define INFO() \
         Info(__FILE__, __LINE__, __func__)
 
@@ -28,12 +26,7 @@ typedef double Canary_t;
         StackAssertFunk((stk), __FILE__, __func__, __LINE__)
 
 #define STACK_CTOR(stk) \
-        do { StackCtor((stk)); INFO(); } while (false)
-#ifdef DEBUG
-        #define ON_DEBUG(code) code
-    #else
-        #define ON_DEBUG(code)
-    #endif    
+        do { StackCtor((stk)); INFO(); } while (false) 
 
 struct Info_locate
 {
@@ -91,7 +84,6 @@ StackElem_t StackPop (Stack_t* stk                   );
 ////////////////////___ВСЕВОЗМОЖНЫЕ ПРОВЕРКИ СТЕКА НА ОШИБКИ, АТАКУ И КОРРЕКТНОСТЬ АДРЕСОВ/////////////////////////////////////////////////////////
 void        StackCheckAssertError(Stack_t* stk                                                 );
 void        StackAssertFunk      (Stack_t* stk, const char* FILE, const char* FUNC, size_t LINE);
-int         StackOk              (Stack_t* stk                                                 );
 void        StackError           (Stack_t* stk                                                 );
 int         StackCheckError      (Stack_t* stk                                                 );
 void        StackAssertError     (Stack_t* stk                                                 );

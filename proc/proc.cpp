@@ -1,33 +1,58 @@
 #include "proc.h"
 #include "procAsm.h"
 
-#define JUMP_COMMON(spu, flagCond, codeOp)  \
-    {                                       \
-        assert(spu);                        \
-        if (!flagCond)                      \
-        {                                   \
-            jump(spu);                      \
-            spu->ip--;                      \
-            break;                          \
-        }                                   \
-        else                                \
-        {                                   \
-            double a = StackPop(&spu->stk); \
-            double b = StackPop(&spu->stk); \
-            StackPush(&spu->stk, b);        \
-            StackPush(&spu->stk, a);        \
-            if (int(b) codeOp int(a))       \
-            {                               \
-                jump(spu);                  \
-                spu->ip --;                 \
-            }                               \
-            else                            \
-            {                               \
-                spu->ip += 2;               \
-            }                               \
-            break;                          \
-        }                                   \
+static int  getArgPuch (SPU* spu);
+static int  getArgPop  (SPU* spu);
+
+static void pDump(SPU spu);
+static void jump (SPU* spu);
+
+static PairOfNum getPairOfNumbersFromStack(SPU* spu); 
+
+#define STANDART_JMP(spu) \
+    {                     \
+        jump(spu);        \
+        spu->ip--;        \
+        break;            \
+    }                     \
+
+#define MODIFIED_JMP(spu, codeOp)       \
+    {                                   \
+        double a = StackPop(&spu->stk); \
+        double b = StackPop(&spu->stk); \
+        StackPush(&spu->stk, b);        \
+        StackPush(&spu->stk, a);        \
+        if (int(b) codeOp int(a))       \
+            STANDART_JMP(spu)           \
+        else                            \
+            spu->ip += 2;               \
+        break;                          \
+    }             
+
+#define JUMP_COMMON(spu, flagCond, codeOp) \
+    {                                      \
+        assert(spu);                       \
+        if (!flagCond)                     \
+            STANDART_JMP(spu)              \
+        else                               \
+            MODIFIED_JMP(spu, codeOp)      \
     }                                                                  
+
+#define STANDART_BINARY_OPERATION(operation)             \
+    {                                                    \
+        PairOfNum pair = getPairOfNumbersFromStack(spu); \
+        StackPush(&spu->stk, pair.b operation pair.a);   \
+        spu->ip++;                                       \
+        break;                                           \
+    }
+
+#define STANDART_UNARY_OPERATION(operation) \
+    {                                       \
+        double a = StackPop(&spu->stk);     \
+        StackPush(&spu->stk, operation(a)); \
+        spu->ip++;                          \
+        break;                              \
+    } 
 
 int run(SPU* spu, size_t size_file)
 {
@@ -62,6 +87,7 @@ int run(SPU* spu, size_t size_file)
             case COMMAND_JBE :  JUMP_COMMON(spu, 1, <=);
             case COMMAND_JE  :  JUMP_COMMON(spu, 1, ==);
             case COMMAND_JHE :  JUMP_COMMON(spu, 1, !=);
+
             case COMMAND_CALL:
             {
                 StackPush(&spu->recStk, spu->ip + JUMP_STEP);
@@ -82,75 +108,24 @@ int run(SPU* spu, size_t size_file)
                 spu->ip++;
                 break;
             }
-            case COMMAND_ADD:
-            {
-                PairOfNum pair = getPairOfNumbersFromStack(spu);
-                StackPush(&spu->stk, pair.b + pair.a);
-                spu->ip++;
-                break;
-            }
-            case COMMAND_SUB:
-            {
-                PairOfNum pair = getPairOfNumbersFromStack(spu);
-                StackPush(&spu->stk, pair.b - pair.a);
-                spu->ip++;
-                break;
-            }
-            case COMMAND_MUL:
-            {
-                PairOfNum pair = getPairOfNumbersFromStack(spu);
-                StackPush(&spu->stk, pair.b * pair.a);
-                spu->ip++;
-                break;
-            }
-            case COMMAND_DIV:
-            {
-                PairOfNum pair = getPairOfNumbersFromStack(spu);
-                StackPush(&spu->stk, pair.b / pair.a);
-                spu->ip++;
-                break;
-            }    
-            case COMMAND_SQRT:
-            {
-                double a = StackPop(&spu->stk);
-                StackPush(&spu->stk, sqrt(a));
-                spu->ip++;
-                break;
-            }    
-            case COMMAND_SIN:
-            {
-                double a = StackPop(&spu->stk);
-                StackPush(&spu->stk, sin(a));
-                spu->ip++;
-                break;
-            } 
-            case COMMAND_COS:
-            {
-                double a = StackPop(&spu->stk);
-                StackPush(&spu->stk, cos(a));
-                spu->ip++;
-                break;
-            } 
-            case COMMAND_TG:
-            {
-                double a = StackPop(&spu->stk);
-                StackPush(&spu->stk, tan(a));
-                spu->ip++;
-                break;
-            } 
-            case COMMAND_CTG:
-            {
-                double a = StackPop(&spu->stk);
-                StackPush(&spu->stk, 1 / tan(a));
-                spu->ip++;
-                break;
-            } 
+
             case COMMAND_OUT:
             {
                 printf("%sOUT%s:%s %lg%s\n", GREEN, RED, MANG, StackPop(&spu->stk), RESET);
                 spu->ip++;
                 break;
             }
+            case COMMAND_ADD: STANDART_BINARY_OPERATION(+);
+            case COMMAND_SUB: STANDART_BINARY_OPERATION(-);
+            case COMMAND_MUL: STANDART_BINARY_OPERATION(*);
+            case COMMAND_DIV: STANDART_BINARY_OPERATION(/);
+           
+            case COMMAND_SQRT: STANDART_UNARY_OPERATION(sqrt);
+            case COMMAND_SIN : STANDART_UNARY_OPERATION(sin);
+            case COMMAND_COS : STANDART_UNARY_OPERATION(cos);
+            case COMMAND_TG  : STANDART_UNARY_OPERATION(tan);
+            case COMMAND_CTG : STANDART_UNARY_OPERATION(1 / tan);
+            
             case COMMAND_DUMP:
             {
                 spu->ip++;
@@ -188,9 +163,14 @@ int run(SPU* spu, size_t size_file)
     }
 }
 
+#undef MODIFIED_JMP
+#undef STANDART_JMP
 #undef JUMP_COMMON
 
-void pDump(SPU spu)
+#undef STANDART_BINARY_OPERATION
+#undef STANDART_UNARY_OPERATION
+
+static void pDump(SPU spu)
 {
     printf("%s___ProcDump___~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%s\n", RED, RESET);
     printf("%scode     %s: %s", GREEN, RED, RESET);
@@ -281,7 +261,7 @@ void spuDelete(SPU* spu)
     FREE(spu);
 }
 
-PairOfNum getPairOfNumbersFromStack(SPU* spu)
+static PairOfNum getPairOfNumbersFromStack(SPU* spu)
 {
     assert(spu);
 
@@ -293,7 +273,7 @@ PairOfNum getPairOfNumbersFromStack(SPU* spu)
     return pair;
 }
 
-int getArgPuch(SPU* spu)
+static int getArgPuch(SPU* spu)
 {
     assert(spu);
 
@@ -325,7 +305,7 @@ int getArgPuch(SPU* spu)
     return result;
 }
 
-int getArgPop(SPU* spu)
+static int getArgPop(SPU* spu)
 {
     assert(spu);
 
@@ -345,12 +325,7 @@ int getArgPop(SPU* spu)
     return EXIT_SUCCESS;
 }
 
-void printDebug(int ind)
-{
-    printf("%s!!!%s_________%sTHIS IS OK%s_________%s!!!%s (%s%d%s) %s\n", RED, YELLOW, GREEN, YELLOW, RED, MANG, YELLOW, ind,  MANG, RESET);
-}
-
-void jump (SPU* spu)
+static void jump (SPU* spu)
 {
     assert(spu);
     spu->ip = (int)spu->code[spu->ip+1];

@@ -3,6 +3,7 @@
 
 #include <stdio.h>
 #include <assert.h>
+#include <stdlib.h>
 #include <sys/stat.h>
 #include <string.h>
 
@@ -26,7 +27,7 @@
 /*==============================================================================================================*/
 
 
-/*===============================================_____MODIFISRS_____============================================*/
+/*===============================================_____MODIFICATIONS_____========================================*/
 #define FREE(ptr_) \
     do{free(ptr_)  ; ptr_ = NULL;} while(false)
 
@@ -36,15 +37,17 @@
 
 
 /*===============================================_____ERRORS_____===============================================*/
-#define SYNTAX_ERROR(errorMessage)                                             \
-    printf(RED "Syntax Error: file %s, line %d \n" RESET, __FILE__, __LINE__); \
-    printf(RED "%s\nexit with 1 status\n" RESET, errorMessage);                \
-    exit(1);                                                                   \
+#define SYNTAX_ERROR(errorMessage, output)                                         \
+    {                                                                              \
+        fprintf(output, "Syntax Error: file %s, line %d \n", __FILE__, __LINE__);  \
+        fprintf(output, errorMessage "\nexit with 1 status\n");                    \
+        exit(1);                                                                   \
+    }                                                                              \
 
 #define ASSERT(ptr, report, output)                                            \
     if (!ptr)                                                                  \
     {                                                                          \
-        fprintf(output, "ERROR IN FILE %s: LINE %d: ", __FILE__, __LINE__);   \
+        fprintf(output, "ERROR IN FILE %s: LINE %d: ", __FILE__, __LINE__);    \
         fprintf(output, report "\n");                                          \
         exit(1);                                                               \
     }
@@ -61,7 +64,8 @@
 
 
 /*===============================================_____WORKING_WITH_FILES_____===================================*/
-size_t getSizeOfFile(FILE* file, const char* const nameFile);
+size_t getSizeOfFile   (FILE* file, const char* const nameFile);
+char*  readFileToBuffer(FILE* file, size_t size_file);
 /*==============================================================================================================*/
 
 #endif

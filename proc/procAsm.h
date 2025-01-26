@@ -1,6 +1,7 @@
 #ifndef PROC_ASSM_H
 #define PROC_ASSM_H
 
+#include "../myLib/myLib.h"
 #include "proc.h"
 #include <stdlib.h>
 #include <sys/stat.h>
@@ -9,11 +10,9 @@
 #include <ctype.h>
 #include <stdbool.h>
 
-#define FCLOSE(ptr_) \
-    do {fclose(ptr_); ptr_ = NULL;} while(false)
-
 const int SPACE   = 1;
 const int LEN_REG = 3;
+const char* const ASSEMBLER_FILE_NAME = "assemblerFile.txt";
 
 struct CMD_ARRAY      {const char* cmd_array;};
 
@@ -34,20 +33,6 @@ const IP_MOVE commandArr[NUMBER_OF_COOMANDS] = {
 const char* const registerNames[NUMBER_OF_REGISTERS] = {"ax", "bx", "cx", "dx", "ex", "fx", "gx", "hx"};
 
 size_t asembler(SPU* spu);
-
-size_t* getFileSize     (const char* name_file);
-char*   readFileToBuffer(FILE* file, size_t size_file);
-int     ipMove          (char command_recognizer[]);
-void    defineLabel     (SPU* spu, char command_recognizer[]);
-int     argInit         (char* argument_recognizer);
-bool    searchLabel     (SPU* spu, char* buffer, char argument_recognizer[], int* i, int t_1);
-void    createLabel     (SPU* spu, int* i, char command_recognizer[]);
-void    sintaxError     (int num);
-void    addLabel        (SPU* spu, char command_recognizer[], size_t len);
-void    findLabel       (SPU* spu, char* buffer, int* i, char command_recognizer[]);
-void    workWithRAM     (SPU* spu, char argument_recognizer[], int* i, int t_1);
-void    workWithReg     (SPU* spu, int* i, int arg);
-void    workWithNum     (SPU* spu, char argument_recognizer[], int* i, int* t_1);
-
+void  findLabel(SPU* spu, char* buffer, int* i, char command_recognizer[]); // первичный прогон по коду для определения меток
 
 #endif

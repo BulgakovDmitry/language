@@ -1,7 +1,7 @@
 #ifndef PROC_H
 #define PROC_H
 
-#include "structStack//Stack.h"
+#include "../structStack/Stack.h"
 #include <stdio.h>
 #include <string.h>
 #include <math.h>                                                  
@@ -86,16 +86,7 @@ struct SPU
 struct PairOfNum {double a, b;};
 
 int  run        (SPU* spu, size_t size_file);
-
-int  getArgPuch (SPU* spu);
-int  getRegister(int argument);
-int  getArgPop  (SPU* spu);
 SPU* spuInit    ();
-void pDump      (SPU spu);
 void spuDelete  (SPU* spu);
-void printDebug (int ind);
-void jump       (SPU* spu);
-
-PairOfNum getPairOfNumbersFromStack(SPU* spu);
 
 #endif

@@ -1,4 +1,7 @@
 #include "Stack.h"
+
+static int StackOk(Stack_t* stk);
+
 ////////////////////___СОЗДАНИЕ И ОЧИСТКА СТЕКА___/////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -126,7 +129,7 @@ void StackAssertFunk(Stack_t* stk, const char* FILE, const char* FUNC, size_t LI
 }
 
 /*-------------ПОДФУНКЦИЯ ФУНКЦИИ ASSERT---------------------------------------------------------------------------------------------------------*/
-int StackOk(Stack_t* stk)
+static int StackOk(Stack_t* stk)
 {
     if (stk == NULL)       {return InvalidStructurePointer;}
     if (stk->data == NULL) {return InvalidStackPointer;    }
