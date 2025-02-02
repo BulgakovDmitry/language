@@ -54,7 +54,7 @@ static PairOfNum getPairOfNumbersFromStack(SPU* spu);
         break;                              \
     } 
 
-int run(SPU* spu, size_t size_file)
+int run(SPU* spu)
 {
     double command = 0;
     double argument = 0;
@@ -62,12 +62,6 @@ int run(SPU* spu, size_t size_file)
 
     while(true)
     {
-        if (3 * (int)size_file <= spu->ip + 1) // проверка на выход за границы code
-        {
-            printf(RED "\nERROR: THE CODE OVERFILLED\n" RESET); 
-            return EXIT_FAILURE;
-        } 
-        
         switch ((int)spu->code[spu->ip])
         {
             case COMMAND_PUSH: 

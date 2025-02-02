@@ -1,48 +1,46 @@
 #include "procAsm.h"
-#include "../myLib/myLib.h"
+#include <myLib.h>
 
 static int  ipMove     (char command_recognizer[]);
 static int  argInit    (char* argument_recognizer);
 
 static void sintaxError(int num);
 
-static void workWithNum(SPU* spu, char argument_recognizer[], int* i, int* t_1);
-static void workWithRAM(SPU* spu, char argument_recognizer[], int* i, int t_1);
-static void workWithReg(SPU* spu, int* i, int arg);
+static void workWithNum(SPU* spu, char argument_recognizer[], int* shift, int* t_1);
+static void workWithRAM(SPU* spu, char argument_recognizer[], int* shift, int t_1);
+static void workWithReg(SPU* spu, int* shift, int arg);
 
 static void addLabel   (SPU* spu, char command_recognizer[], size_t len);
-static bool searchLabel(SPU* spu, char* buffer, char argument_recognizer[], int* i, int t_1);
-static void createLabel(SPU* spu, int* i, char command_recognizer[]);
-static void defineLabel(SPU* spu, char command_recognizer[]);
+static bool searchLabel(SPU* spu, char* buffer, char argument_recognizer[], int* shift, int t_1);
 
 #define CHECKING_FOR_WORKING_WITH_RAM                   \
     if (argument_recognizer[0] == '[')                  \
     {                                                   \
-        workWithRAM(spu, argument_recognizer, &i, t_1); \
+        workWithRAM(spu, argument_recognizer, &shift, t_1); \
         continue;                                       \
     }                                                   \
         
 #define CHECKING_FOR_WORKING_WITH_NUM                    \
     else if (arg == 0)                                   \
     {                                                    \
-        workWithNum(spu, argument_recognizer, &i, &t_1); \
+        workWithNum(spu, argument_recognizer, &shift, &t_1); \
         continue;                                        \
     }
 
 #define CHECKING_FOR_WORKING_WITH_REG \
     else                              \
     {                                 \
-        workWithReg(spu, &i, arg);    \
+        workWithReg(spu, &shift, arg);    \
         continue;                     \
     }
 
 #define WORKING_WITH_THREE_ARGUMENT_COMMAND(constNameCommand)  \
     spu->code[spu->ip] = constNameCommand;                     \
     spu->ip++;                                                 \
-    i += t_0 + SPACE;                                          \
-    char argument_recognizer[3] = "";                          \
+    shift += t_0 + SPACE;                                          \
+    char argument_recognizer[LEN_REG] = "";                    \
     int t_1 = 0;                                               \
-    sscanf(buffer + i, "%s%n", argument_recognizer, &t_1);     \
+    sscanf(buffer + shift, "%s%n", argument_recognizer, &t_1);     \
     int arg = argInit(argument_recognizer);                   
 
 #define ONE_ARGUMENT_COMMAND(command, constNameCommand)                      \
@@ -50,7 +48,7 @@ static void defineLabel(SPU* spu, char command_recognizer[]);
     {                                                                        \
         spu->code[spu->ip] = constNameCommand;                               \
         spu->ip++;                                                           \
-        i += t_0 + SPACE;                                                    \
+        shift += t_0 + SPACE;                                                    \
         continue;                                                            \
     }
 
@@ -59,20 +57,20 @@ static void defineLabel(SPU* spu, char command_recognizer[]);
     {                                                                            \
         spu->code[spu->ip] = constNameCommand;                                   \
         spu->ip++;                                                               \
-        i += t_0 + SPACE;                                                        \
+        shift += t_0 + SPACE;                                                        \
         char argument_recognizer[MAX_LABEL_SIZE] = "";                           \
         int t_1 = 0;                                                             \
-        sscanf(buffer + i, "%s%n", argument_recognizer, &t_1);                   \
+        sscanf(buffer + shift, "%s%n", argument_recognizer, &t_1);                   \
         if (isdigit(argument_recognizer[0]) != 0)                                \
         {                                                                        \
-            spu->code[spu->ip] = atoi(argument_recognizer);                      \
+            spu->code[spu->ip] = atof(argument_recognizer);                      \
             spu->ip++;                                                           \
-            i += t_1 + SPACE;                                                    \
+            shift += t_1 + SPACE;                                                    \
         }                                                                        \
         else                                                                     \
         {                                                                        \
-            bool metka = searchLabel(spu, buffer, argument_recognizer, &i, t_1); \
-            if (!metka)                                                          \
+            bool label = searchLabel(spu, buffer, argument_recognizer, &shift, t_1); \
+            if (!label)                                                          \
                 sintaxError(3);                                                  \
         }                                                                        \
     } 
@@ -80,13 +78,13 @@ static void defineLabel(SPU* spu, char command_recognizer[]);
 #define IGNORE                                   \
     {                                            \
         size_t len = strlen(command_recognizer); \
-        i += (int)len;                           \
+        shift += (int)len;                           \
         continue;                                \
     }
 
 #define INITIAL_MILEAGE_BY_CODE                     \
-    findLabel(spu, buffer, &i, command_recognizer); \
-    i = 0;                                          \
+    findLabel(spu, buffer, &shift, command_recognizer); \
+    shift = 0;                                          \
     spu->ip = 0;                                    \
 
 size_t asembler(SPU* spu)
@@ -96,7 +94,7 @@ size_t asembler(SPU* spu)
     FILE* assembler = fopen(ASSEMBLER_FILE_NAME, "r");               // ОТКРЫТИЕ ФАЙЛА ДЛЯ ЧТЕНИЯ 
     assert(assembler);
 
-    size_t size_file = getSizeOfFile(assembler, ASSEMBLER_FILE_NAME);  // ПОЛУЧЕНИЕ РАЗМЕРА ФАЙЛА 
+    size_t size_file = getFileSize(assembler);  // ПОЛУЧЕНИЕ РАЗМЕРА ФАЙЛА 
 
     spu->code = (double*)calloc(size_file * 3, sizeof(double));     // СОЗДАНИЕ МАССИВА code
     assert(spu->code);
@@ -107,14 +105,14 @@ size_t asembler(SPU* spu)
     FCLOSE(assembler);
 
     char command_recognizer[10] = "";
-    int i = 0;  
+    int shift = 0;  
 
     INITIAL_MILEAGE_BY_CODE
     
-    while (buffer[i] != '\0')
+    while (buffer[shift] != '\0')
     {   
         int t_0 = 0;
-        sscanf(buffer + i, "%s%n", command_recognizer, &t_0);
+        sscanf(buffer + shift, "%s%n", command_recognizer, &t_0);
 
         if (strcmp(command_recognizer, "push") == 0)
         {
@@ -137,7 +135,7 @@ size_t asembler(SPU* spu)
         {                                                                            \
             spu->code[spu->ip] = COMMAND_HLT;                                        \
             spu->ip++;                                                               \
-            i += t_0 + SPACE;                                                        \
+            shift += t_0 + SPACE;                                                        \
             continue;                                                                \
         }
 
@@ -183,64 +181,26 @@ size_t asembler(SPU* spu)
 #undef IGNORE
 #undef INITIAL_MILEAGE_BY_CODE
 
-static void createLabel(SPU* spu, int* i, char command_recognizer[])
-{
-    assert(spu);
-    assert(i);
-    assert(command_recognizer);
-
-    defineLabel(spu, command_recognizer);
-
-    size_t len = strlen(command_recognizer);
-    *i += (int)len;
-
-    addLabel(spu, command_recognizer, len);
-}
-
-static void defineLabel(SPU* spu, char command_recognizer[])
-{
-    assert(spu);
-    assert(command_recognizer);
-
-    char temp = 'a';
-    int j = 0;
-    while (j < MAX_LABEL_SIZE)
-    {
-        if (command_recognizer[j] == ':')
-        { 
-            temp = command_recognizer[j];
-            j = MAX_LABEL_SIZE;
-            continue;
-        }
-        j++;
-        if (j == MAX_LABEL_SIZE)
-            sintaxError(1);
-    }
-    if (temp != ':')
-        sintaxError(2);
-}
-
-void findLabel(SPU* spu, char* buffer, int* i, char command_recognizer[])
+void findLabel(SPU* spu, char* buffer, int* shift, char command_recognizer[])
 {
     assert(spu);
     assert(buffer);
     assert(command_recognizer);
 
-    while (buffer[*i] != '\0')
+    while (buffer[*shift] != '\0')
     {   
-        sscanf(buffer + (*i), "%s", command_recognizer);
+        sscanf(buffer + (*shift), "%s", command_recognizer);
         size_t command_recognizer_len = strlen(command_recognizer);
 
         spu->ip += ipMove(command_recognizer);
 
         if (command_recognizer[command_recognizer_len - 1] == ':')
         {
-            //printf(YELLOW "ADD LABEL %s\n" RESET, command_recognizer);
             addLabel(spu, command_recognizer, command_recognizer_len);
-            (*i) += (int)command_recognizer_len + SPACE;
+            (*shift) += (int)command_recognizer_len + SPACE;
         }
         else    
-            (*i) += (int)command_recognizer_len + SPACE;
+            (*shift) += (int)command_recognizer_len + SPACE;
     }
 }
 
@@ -276,7 +236,7 @@ static void sintaxError(int num)
     abort();
 }
 
-static bool searchLabel(SPU* spu, char* buffer, char argument_recognizer[], int* i, int t_1)
+static bool searchLabel(SPU* spu, char* buffer, char argument_recognizer[], int* shift, int t_1)
 {
     assert(spu);
     assert(buffer);
@@ -290,7 +250,7 @@ static bool searchLabel(SPU* spu, char* buffer, char argument_recognizer[], int*
             spu->code[spu->ip] = (double)spu->lb[y].ipLabel;
             spu->ip++;
             metka = true;
-            (*i) += t_1 + SPACE;
+            (*shift) += t_1 + SPACE;
             continue;
         }
     }
@@ -314,17 +274,17 @@ static int ipMove(char command_recognizer[])
     return ip;
 }
 
-static void workWithRAM(SPU* spu, char argument_recognizer[], int* i, int t_1)
+static void workWithRAM(SPU* spu, char argument_recognizer[], int* shift, int t_1)
 {
     assert(spu);
     assert(argument_recognizer);
-    (*i)++;
+    (*shift)++;
     spu->code[spu->ip] = ARGTYPE_M;
     spu->ip++;
     argument_recognizer[t_1 - 1] = '\0';
     if (!isalpha(argument_recognizer[1]))
     {
-        double argument = atoi(argument_recognizer + 1);
+        double argument = atof(argument_recognizer + 1);
 
         if (argument >= RAM_SIZE || argument < 0)
             sintaxError(6);
@@ -332,7 +292,7 @@ static void workWithRAM(SPU* spu, char argument_recognizer[], int* i, int t_1)
         spu->code[spu->ip] = argument;
         spu->ip++;
 
-        (*i) += t_1;
+        (*shift) += t_1;
     }
     else
     {
@@ -345,14 +305,14 @@ static void workWithRAM(SPU* spu, char argument_recognizer[], int* i, int t_1)
 
         spu->code[spu->ip] = registr;
         spu->ip++;
-        (*i) += t_1;
+        (*shift) += t_1;
     }
 }
 
-static void workWithReg(SPU* spu, int* i, int arg)
+static void workWithReg(SPU* spu, int* shift, int arg)
 {
     assert(spu);
-    (*i) += 3;
+    (*shift) += 3;
     int registr = arg;
     spu->code[spu->ip] = ARGTYPE_R;
     spu->ip++;
@@ -360,7 +320,7 @@ static void workWithReg(SPU* spu, int* i, int arg)
     spu->ip++;
 }
 
-static void workWithNum(SPU* spu, char argument_recognizer[], int* i, int* t_1)
+static void workWithNum(SPU* spu, char argument_recognizer[], int* shift, int* t_1)
 {
     assert(spu);
     assert(argument_recognizer);
@@ -369,8 +329,8 @@ static void workWithNum(SPU* spu, char argument_recognizer[], int* i, int* t_1)
     sscanf(argument_recognizer, "%d%n", &argument, t_1);
     spu->code[spu->ip] = ARGTYPE_I; 
     spu->ip++;
-    (*i) += SPACE;
+    (*shift) += SPACE;
     spu->code[spu->ip] = argument; 
     spu->ip++;
-    (*i) += (*t_1);
+    (*shift) += (*t_1);
 }

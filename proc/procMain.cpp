@@ -4,9 +4,9 @@
 int main(void)
 {
     SPU* spu = spuInit();  
-    size_t size_file = asembler(spu); 
-    run(spu, size_file);
+    asembler(spu); 
+    run(spu);
     spuDelete(spu);
-    printDebug(999);
+    DBG(SUCCESS;)
     return 0;
 }

@@ -1,7 +1,7 @@
 #ifndef PROC_ASSM_H
 #define PROC_ASSM_H
 
-#include "../myLib/myLib.h"
+#include <myLib.h>
 #include "proc.h"
 #include <stdlib.h>
 #include <sys/stat.h>

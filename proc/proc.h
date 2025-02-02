@@ -1,7 +1,7 @@
 #ifndef PROC_H
 #define PROC_H
 
-#include "../structStack/Stack.h"
+#include <Stack.h>
 #include <stdio.h>
 #include <string.h>
 #include <math.h>                                                  
@@ -73,7 +73,7 @@ struct Labels
 
 struct SPU
 {
-    double* code;
+    double* code; //TODO to void*
     int     ip;
     Stack_t stk;
     Stack_t recStk;
@@ -85,8 +85,8 @@ struct SPU
 
 struct PairOfNum {double a, b;};
 
-int  run        (SPU* spu, size_t size_file);
-SPU* spuInit    ();
-void spuDelete  (SPU* spu);
+int  run      (SPU* spu);
+SPU* spuInit  ();
+void spuDelete(SPU* spu);
 
 #endif
